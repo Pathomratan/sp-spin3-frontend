@@ -1,9 +1,11 @@
+import { getCookie } from './cookie'
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
-  ...(localStorage.getItem('token') && {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  ...(getCookie('token') && {
+    Authorization: `Bearer ${getCookie('token')}`,
   }),
 })
 

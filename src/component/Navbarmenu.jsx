@@ -44,7 +44,7 @@ const Navbarmenu = () => {
   }, []);
 
   const handleLogout = () => {
-    // 1. ล้างข้อมูลใน Context (จะทำให้ useEffect ใน Provider ล้าง localStorage ให้อัตโนมัติ)
+    // 1. ล้างข้อมูลใน Context (จะทำให้ useEffect ใน Provider ล้าง cookies ให้อัตโนมัติ)
     setMyUserInfo(null);
 
     // 2. ปิด UI ต่างๆ

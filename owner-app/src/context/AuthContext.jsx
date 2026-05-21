@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react'
+import { removeCookie } from '../utils/cookie'
 
 const AuthContext = createContext(null)
 
@@ -15,7 +16,11 @@ export function AuthStoreProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(true)
 
   const login = (u) => { setUser(u); setIsAuthenticated(true) }
-  const logout = () => { setUser(null); setIsAuthenticated(false) }
+  const logout = () => { 
+    setUser(null); 
+    setIsAuthenticated(false);
+    removeCookie('token');
+  }
 
   const value = {
     user,

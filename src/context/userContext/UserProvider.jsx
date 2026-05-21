@@ -1,28 +1,34 @@
-// คอยจำว่า "ตอนนี้ใคร Login อยู่" โดยดึงข้อมูลจาก localStorage
+// คอยจำว่า "ตอนนี้ใคร Login อยู่" โดยดึงข้อมูลจาก cookies แทน localStorage
 
 import { useState, useEffect } from "react";
 import { UserContext } from "./UserContext";
+import { getCookie, setCookie, removeCookie } from "../../utils/cookie";
 
 export const UserProvider = ({ children }) => {
-  // Added safe parsing (try-catch) and null check.
-  // Prevents "Unexpected end of JSON input" error when localStorage is empty for new users.
+  // เปลี่ยนมาดึงข้อมูลจาก cookie แทน localStorage
   const [myUserInfo, setMyUserInfo] = useState(() => {
     try {
-      const savedUser = localStorage.getItem("userInfo");
+      const savedUser = getCookie("userInfo");
       return savedUser ? JSON.parse(savedUser) : null;
     } catch (error) {
-      console.error("Error parsing userInfo from localStorage:", error);
+      console.error("Error parsing userInfo from cookie:", error);
       return null;
     }
   });
 
-  // Sync state changes to localStorage.
-  // Added condition to remove item on logout instead of saving the string "null".
+  // Sync state changes to cookies และจัดการการลบ cookie เมื่อ logout
   useEffect(() => {
     if (myUserInfo === null || myUserInfo === undefined) {
-      localStorage.removeItem("userInfo");
+      removeCookie("userInfo");
+      removeCookie("token");
     } else {
-      localStorage.setItem("userInfo", JSON.stringify(myUserInfo));
+      // เก็บ userInfo ใน cookie (แบบ stringify)
+      setCookie("userInfo", JSON.stringify(myUserInfo));
+      
+      // ถ้ามี token ใน userInfo ให้เก็บแยกใน cookie 'token' ด้วย
+      // ถ้าไม่มีให้จำลอง mock-token (ตาม mock API ปัจจุบัน)
+      const token = myUserInfo.token || `mock-token-${myUserInfo.username}`;
+      setCookie("token", token);
     }
   }, [myUserInfo]);
 
