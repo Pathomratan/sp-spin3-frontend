@@ -1,3 +1,3 @@
 import { api } from '../utils/api'
 
-export const getTables = () => api.get('/tables')
+export const getTables = () => api.get('/api/tables')
