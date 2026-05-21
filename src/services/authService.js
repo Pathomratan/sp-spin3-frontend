@@ -27,7 +27,7 @@ export const loginAPI = async (email, password) => {
 
     return { ...response.user, token: response.token };
     } catch (err) {
-    ...
+    
 
     console.error("Register Service Error:", err);
     throw new Error(err.message || "ระบบลงทะเบียนขัดข้อง");
