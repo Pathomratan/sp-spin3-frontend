@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import BranchSelector from '../../component/customer/BranchSelector';
 import SummaryInform from '../../component/customer/SummaryInform';
 import { useNavigate } from 'react-router-dom';
@@ -21,24 +21,29 @@ export default function BookingPage() {
     contact: '+66 258423381123'
   });
 
-  // ฟังก์ชันสำหรับกดปุ่ม Confirm Order แล้วไปหน้า Payment
-  const goToCheckout = () => {
-    navigate("/payment", { // เปลี่ยนลิงก์ให้ตรงกับ Router ของหน้า PaymentPage
+  // Handle branch selection
+  const handleSelectBranch = useCallback((branchName) => {
+    setOrderState(prev => ({ ...prev, branch: branchName }));
+  }, []);
+
+  // Handle address update
+  const handleUpdateAddress = useCallback((address) => {
+    setOrderState(prev => ({ ...prev, userAddress: address }));
+  }, []);
+
+  // Navigate to payment with all required data
+  const goToCheckout = useCallback(() => {
+    navigate("/payment", {
       state: { 
-        bookingDate: orderState.date, // ส่งข้อมูลวันที่
-        bookingTime: orderState.time, // ส่งข้อมูลเวลา (เพิ่มเติมได้)
-        branch: orderState.branch
+        bookingDate: orderState.date,
+        bookingTime: orderState.time,
+        branch: orderState.branch,
+        member: orderState.member,
+        userAddress: orderState.userAddress,
+        profile: profile,
       } 
     });
-  };
-
-  const handleSelectBranch = (branchName) => {
-    setOrderState(prev => ({ ...prev, branch: branchName }));
-  };
-
-  const handleUpdateAddress = (address) => {
-    setOrderState(prev => ({ ...prev, userAddress: address }));
-  };
+  }, [orderState, profile, navigate]);
 
   return (
     <div className="bg-brand-gray text-brand-black font-sans-thai pb-20 min-h-screen">
@@ -52,7 +57,7 @@ export default function BookingPage() {
           setOrderState={setOrderState} 
           profile={profile} 
           setProfile={setProfile} 
-          onConfirm={goToCheckout} // ส่งฟังก์ชันไปให้ปุ่ม Confirm ในคอมโพเนนต์นี้
+          onConfirm={goToCheckout}
         />
       </div>
     </div>

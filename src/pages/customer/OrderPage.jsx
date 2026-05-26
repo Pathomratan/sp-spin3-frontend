@@ -1,6 +1,6 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useCallback } from "react";
 import { OrdersContext } from "../../context/ordersContext/OrdersContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Trash2, PlusCircle, MessageSquare, ShoppingCart } from "lucide-react";
 
 // --- ส่วนแสดงรายการสินค้าในตะกร้า (Middle Panel) ---
@@ -53,48 +53,28 @@ const OrderItem = ({ item, orderId, onUpdateQty, onRemove, onEdit, isSelected })
 };
 
 const OrderPage = () => {
-  const { orderList, setOrderList } = useContext(OrdersContext);
+  const { orderList, updateItemQty, removeItem } = useContext(OrdersContext);
   const navigate = useNavigate();
-  const location = useLocation();
   
-  const [customizingItem, setCustomizingItem] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState({ spicy: "เผ็ดกลาง", size: "Regular", note: "None" });
+  const [customizingItem, setCustomizingItem] = React.useState(null);
 
-  useEffect(() => {
-    if (location.state?.customizingItem) {
-      setCustomizingItem(location.state.customizingItem);
+  // Handle update quantity using context
+  const handleUpdateQty = useCallback((orderId, itemId, change) => {
+    const items = orderList.find(o => o.orderId === orderId);
+    const key = items?.List ? "List" : "orderList";
+    const item = items?.[key]?.find(i => i.id === itemId);
+    if (item) {
+      updateItemQty(orderId, itemId, item.quantity + change);
     }
-  }, [location.state]);
+  }, [orderList, updateItemQty]);
 
-  const handleUpdateQty = (orderId, itemId, change) => {
-    const updated = orderList.map(order => {
-      const key = order.List ? "List" : "orderList";
-      if (order.orderId === orderId) {
-        return { 
-          ...order, 
-          [key]: order[key].map(item => 
-            item.id === itemId ? { ...item, quantity: Math.max(1, item.quantity + change) } : item
-          ) 
-        };
-      }
-      return order;
-    });
-    setOrderList(updated);
-  };
-
-  const handleRemove = (orderId, itemId) => {
+  // Handle remove using context
+  const handleRemove = useCallback((orderId, itemId) => {
     if (window.confirm("ลบรายการนี้ออกจากตะกร้า?")) {
-      const updated = orderList.map(order => {
-        const key = order.List ? "List" : "orderList";
-        if (order.orderId === orderId) {
-          return { ...order, [key]: order[key].filter(item => item.id !== itemId) };
-        }
-        return order;
-      }).filter(order => (order.List || order.orderList).length > 0);
-      setOrderList(updated);
+      removeItem(orderId, itemId);
       if (customizingItem?.id === itemId) setCustomizingItem(null);
     }
-  };
+  }, [customizingItem, removeItem]);
 
   const calculateTotal = () => {
     return orderList?.reduce((total, order) => {
