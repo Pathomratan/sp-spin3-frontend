@@ -5,7 +5,7 @@ import CookBoard from "./pages/CookBoard";
 import IndexPage from "./pages/customer/IndexPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import CheckoutPage from "./pages/cashier/CheckoutPage";
+import CheckoutPage from "./pages/cashier/CheckOutPage";
 import TableMap from "./pages/shared/TableMap";
 import OrderList from "./pages/cashier/OrderList";
 import OrderHistory from "./pages/cashier/OrderHistory";
