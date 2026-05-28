@@ -8,6 +8,7 @@ export default function CookBoard() {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("cooking"); // 'all', 'cooking', 'finished'
   const [loading, setLoading] = useState(true);
+  const [timers, setTimers] = useState({}); // Track countdown timers
   const { setMyUserInfo } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -23,12 +24,47 @@ export default function CookBoard() {
       setLoading(false);
     }
   };
-
+  
+  ///pooling every 5 seconds to get real-time updates without needing WebSockets
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10 seconds
+    const interval = setInterval(fetchOrders, 5000); 
     return () => clearInterval(interval);
   }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimers(prevTimers => {
+        const newTimers = { ...prevTimers };
+        Object.keys(newTimers).forEach(key => {
+          if (newTimers[key] > 0) {
+            newTimers[key] -= 1;
+          }
+        });
+        return newTimers;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initialize timers when item status changes to Cook
+  useEffect(() => {
+    orders.forEach(order => {
+      if (order && Array.isArray(order.orderList)) {
+        order.orderList.forEach(item => {
+          const timerId = `${order._id}-${item._id}`;
+          if (item.status === 'Cook' && !timers[timerId]) {
+            setTimers(prev => ({
+              ...prev,
+              [timerId]: item.cookingTime || 300 // Default 5 min if not set
+            }));
+          }
+        });
+      }
+    });
+  }, [orders]);
 
   const handleLogout = () => {
     setMyUserInfo(null);
@@ -65,6 +101,19 @@ export default function CookBoard() {
     }
   };
 
+  const getCountdownColor = (remaining, total) => {
+    const percentage = (remaining / total) * 100;
+    if (percentage > 50) return "text-blue-600";
+    if (percentage > 25) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleUpdateStatus = async (orderId, itemId, newStatus) => {
     try {
       await api.patch(`/orders/${orderId}/item/${itemId}`, { status: newStatus });
@@ -72,6 +121,11 @@ export default function CookBoard() {
     } catch (err) {
       alert("Failed to update status: " + err.message);
     }
+  };
+
+  const formatOrderTime = (createdAt) => {
+    const date = new Date(createdAt);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   return (
@@ -136,9 +190,12 @@ export default function CookBoard() {
                     <h2 className="text-2xl font-black text-slate-900 leading-tight">
                       {order.type === "Onsite" ? (order.customer?.name || "Guest") : `🚚 ${order.customer?.name || "Customer"}`}
                     </h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded">#{order._id.substring(order._id.length - 6).toUpperCase()}</span>
-                      <span className="text-sm text-slate-400 font-medium">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className="text-sm font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded">#{order._id.substring(order._id.length - 6).toUpperCase()}</span>
+                      <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
+                        <Clock size={12} />
+                        Order: {formatOrderTime(order.createdAt)}
+                      </span>
                     </div>
                   </div>
                   <div className={`px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest shadow-sm ${
@@ -153,6 +210,11 @@ export default function CookBoard() {
                 <div className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[500px]">
                   {order.orderList.map((item) => {
                     if (!item) return null;
+                    const timerId = `${order._id}-${item._id}`;
+                    const remainingTime = timers[timerId] !== undefined ? timers[timerId] : (item.cookingTime || 300);
+                    const totalTime = item.cookingTime || 300;
+                    const countdownColor = getCountdownColor(remainingTime, totalTime);
+                    
                     return (
                       <div key={item._id} className="flex flex-col p-4 rounded-xl bg-white border-2 border-slate-100 shadow-sm transition-colors hover:border-slate-200">
                         <div className="flex justify-between items-start mb-3">
@@ -170,6 +232,34 @@ export default function CookBoard() {
                             {(item.status || "UNKNOWN").toUpperCase()}
                           </div>
                         </div>
+
+                        {/* Countdown Timer */}
+                        {item.status === 'Cook' && (
+                          <div className="mb-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Cooking Time</p>
+                            <div className={`text-3xl font-black font-mono ${countdownColor} transition-colors`}>
+                              {formatTime(remainingTime)}
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all ${
+                                  remainingTime / totalTime > 0.5 ? 'bg-green-500' :
+                                  remainingTime / totalTime > 0.25 ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${(remainingTime / totalTime) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
+                        {item.status === 'InKitchen' && item.cookingTime && (
+                          <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Est. Cooking Time</p>
+                            <p className="text-xl font-black text-blue-700 font-mono mt-1">
+                              {formatTime(item.cookingTime)}
+                            </p>
+                          </div>
+                        )}
                         
                         <div className="flex gap-2">
                           {item.status === 'InKitchen' && (
