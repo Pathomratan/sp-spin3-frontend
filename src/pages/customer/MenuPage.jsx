@@ -1,16 +1,13 @@
 // src/pages/customer/MenuPage.jsx
-import React, { useState, useEffect, useContext } from "react";
-import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  HandFist,
-  ShoppingCart,
   ArrowRight,
   CheckCircle,
   MapPin,
 } from "lucide-react";
 import MenuCard from "../../component/customer/MenuCard";
 import CartSidebar from "../../component/customer/CartSidebar";
-import { OrdersContext } from "../../context/ordersContext/OrdersContext";
 import ProductModal from "../../component/customer/ProductModal";
 import LoginModal from "../../component/LoginModal";
 import { useShop } from "../../context/ShopProvider";
@@ -18,7 +15,6 @@ import {
   PROMOTIONS,
   MENU,
   AUTOPLAY_INTERVAL_MS,
-  TOAST_DURATION_MS,
 } from "../../assets/menuData";
 
 const MenuPage = () => {
