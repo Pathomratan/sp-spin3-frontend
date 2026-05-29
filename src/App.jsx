@@ -2,6 +2,7 @@ import { useContext, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Navbarmenu from "./component/Navbarmenu";
 import CookBoard from "./pages/CookBoard";
+import CookIngredientDashboard from "./pages/CookIngredientDashboard";
 import IndexPage from "./pages/customer/IndexPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -194,6 +195,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["cook"]}>
               <CookBoard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cook/ingredients"
+          element={
+            <ProtectedRoute allowedRoles={["cook"]}>
+              <CookIngredientDashboard />
             </ProtectedRoute>
           }
         />

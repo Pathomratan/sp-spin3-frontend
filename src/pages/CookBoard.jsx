@@ -1,7 +1,7 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { api } from "../utils/api";
 import { UserContext } from "../context/userContext/UserContext";
-import { LogOut, Clock, Utensils, CheckCircle, AlertCircle, RefreshCcw } from "lucide-react";
+import { Boxes, LogOut, Clock, Utensils, CheckCircle, AlertCircle, RefreshCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const ITEM_STATUS_STAGE = {
@@ -33,6 +33,7 @@ export default function CookBoard() {
   const [timers, setTimers] = useState({}); // Track countdown timers
   const [updatingItemId, setUpdatingItemId] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
+  const ordersScrollRef = useRef(null);
   const { setMyUserInfo } = useContext(UserContext);
   const navigate = useNavigate();
 
@@ -177,27 +178,40 @@ export default function CookBoard() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
+  const handleBoardWheel = (event) => {
+    const scrollContainer = ordersScrollRef.current;
+    if (!scrollContainer || window.innerWidth < 768) return;
+    if (event.target.closest("[data-order-items]")) return;
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+
+    event.preventDefault();
+    scrollContainer.scrollLeft += event.deltaY;
+  };
+
   return (
-    <div className="p-8 bg-[#f8fafc] min-h-screen font-['IBM_Plex_Sans_Thai']">
+    <div
+      className="bg-[#f8fafc] min-h-screen lg:h-screen lg:overflow-hidden font-['IBM_Plex_Sans_Thai'] p-4 sm:p-6 lg:p-6"
+      onWheel={handleBoardWheel}
+    >
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-4">
-          <div className="bg-[#e4002b] p-3 rounded-xl text-white shadow-lg shadow-red-100">
-            <Utensils size={32} />
+      <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-4 lg:mb-5 gap-4 bg-white p-4 lg:p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-[#e4002b] p-3 rounded-xl text-white shadow-lg shadow-red-100 shrink-0">
+            <Utensils size={28} />
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">KITCHEN DISPLAY</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-none">KITCHEN DISPLAY</h1>
             <p className="text-slate-500 font-medium">Real-time Order Management</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto max-w-full">
             {["all", "cooking", "finished"].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-6 py-2.5 rounded-lg capitalize font-bold text-lg transition-all duration-200 ${
+                className={`px-4 lg:px-5 py-2 rounded-lg capitalize font-bold text-sm lg:text-base whitespace-nowrap transition-all duration-200 ${
                   filter === f 
                   ? "bg-white text-[#e4002b] shadow-sm scale-105" 
                   : "text-slate-500 hover:text-slate-800"
@@ -215,10 +229,17 @@ export default function CookBoard() {
           >
             <RefreshCcw size={20} />
           </button>
+          <button
+            onClick={() => navigate("/cook/ingredients")}
+            className="h-12 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-600 hover:text-[#e4002b] hover:border-[#e4002b] transition-colors"
+          >
+            <Boxes size={20} />
+            <span>INGREDIENTS</span>
+          </button>
           
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-[#e4002b] transition-all shadow-lg shadow-slate-200"
+            className="h-12 flex items-center gap-2 bg-slate-900 text-white px-4 lg:px-5 rounded-xl font-bold hover:bg-[#e4002b] transition-all shadow-lg shadow-slate-200"
           >
             <LogOut size={20} />
             <span>EXIT</span>
@@ -233,25 +254,26 @@ export default function CookBoard() {
         </div>
       )}
 
+      <div className="lg:h-[calc(100vh-148px)] lg:min-h-0">
       {loading ? (
         <div className="flex flex-col justify-center items-center h-96 gap-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-[#e4002b]"></div>
           <p className="text-slate-400 font-bold animate-pulse">SYNCING ORDERS...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+        <div ref={ordersScrollRef} className="flex flex-col gap-5 md:flex-row md:overflow-x-auto md:overflow-y-hidden md:pb-4 lg:h-full lg:min-h-0">
           {filteredOrders.map((order) => {
             if (!order || !Array.isArray(order.orderList)) return null;
             const tableStatus = getTableStatus(order.orderList);
             return (
               <div 
                 key={order._id} 
-                className={`flex flex-col border-2 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden transition-all duration-300 hover:translate-y-[-4px] bg-white ${getStatusColor(tableStatus)}`}
+                className={`flex w-full shrink-0 flex-col border-2 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden transition-all duration-300 hover:translate-y-[-4px] bg-white md:w-[390px] lg:h-full xl:w-[420px] 2xl:w-[450px] ${getStatusColor(tableStatus)}`}
               >
                 {/* Card Header */}
-                <div className="p-5 border-b-2 border-slate-100 flex justify-between items-start bg-white/80 backdrop-blur-sm">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 leading-tight">
+                <div className="p-4 border-b-2 border-slate-100 flex justify-between items-start gap-3 bg-white/80 backdrop-blur-sm shrink-0">
+                  <div className="min-w-0">
+                    <h2 className="text-xl lg:text-2xl font-black text-slate-900 leading-tight truncate">
                       {order.type === "Onsite" ? (order.customer?.name || "Guest") : `🚚 ${order.customer?.name || "Customer"}`}
                     </h2>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -262,7 +284,7 @@ export default function CookBoard() {
                       </span>
                     </div>
                   </div>
-                  <div className={`px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest shadow-sm ${
+                  <div className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-black uppercase tracking-widest shadow-sm shrink-0 ${
                     tableStatus === 'cooking' ? 'bg-orange-500 text-white' : 
                     tableStatus === 'finished' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
                   }`}>
@@ -271,7 +293,7 @@ export default function CookBoard() {
                 </div>
                 
                 {/* Items List */}
-                <div className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[500px]">
+                <div data-order-items className="flex-1 min-h-0 p-4 space-y-3 overflow-y-auto">
                   {order.orderList.map((item) => {
                     if (!item) return null;
                     const timerId = `${order._id}-${item._id}`;
@@ -282,10 +304,10 @@ export default function CookBoard() {
                     const isUpdating = updatingItemId === item._id;
                     
                     return (
-                      <div key={item._id} className="flex flex-col p-4 rounded-xl bg-white border-2 border-slate-100 shadow-sm transition-colors hover:border-slate-200">
+                      <div key={item._id} className="flex flex-col p-3 rounded-xl bg-white border-2 border-slate-100 shadow-sm transition-colors hover:border-slate-200">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex flex-col">
-                            <span className="text-xl font-black text-slate-800 leading-tight">{item.name}</span>
+                            <span className="text-lg lg:text-xl font-black text-slate-800 leading-tight">{item.name}</span>
                             <span className="text-2xl font-black text-[#e4002b]">x{item.quantity}</span>
                           </div>
                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-black ${
@@ -378,7 +400,7 @@ export default function CookBoard() {
                 
                 {/* Footer Notes */}
                 {order.customer?.note && (
-                  <div className="p-4 bg-yellow-50/80 border-t-2 border-yellow-100">
+                  <div className="p-4 bg-yellow-50/80 border-t-2 border-yellow-100 shrink-0">
                     <div className="flex gap-2 items-start">
                       <AlertCircle size={16} className="text-yellow-600 mt-0.5" />
                       <div>
@@ -393,9 +415,10 @@ export default function CookBoard() {
           })}
         </div>
       )}
+      </div>
       
       {filteredOrders.length === 0 && !loading && (
-        <div className="flex flex-col items-center justify-center h-96 text-slate-300">
+        <div className="flex flex-col items-center justify-center h-96 lg:h-[calc(100vh-180px)] text-slate-300">
           <div className="bg-white p-10 rounded-full shadow-inner mb-6">
             <Utensils size={80} strokeWidth={1} />
           </div>
