@@ -27,7 +27,7 @@ export const ShopProvider = ({ children }) => {
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const data = await api.get('/api/menus')
+        const data = await api.get('/menus')
         setMenus(data)
       } catch (err) {
         console.error('Failed to fetch menus:', err.message)
